@@ -1,0 +1,97 @@
+
+================================================ CREATING DATABASE AND MATERIALIZED VIEWS ================================================
+
+//Create a keyspace "ticketbooking" and then connect it
+
+//Create a table events in keyspace "ticketbooking"
+
+CREATE TABLE events (
+    event_code int,
+    event_type text,
+    actor_1_name text,
+    actor_2_name text,
+    actor_3_name text,
+    director_name text,
+    duration int,
+    email text,
+    event_end_time time,
+    event_enddate date,
+    event_organisors text,
+    event_start_time time,
+    event_startingdate date,
+    event_title text,
+    facebook_page text,
+    location_venue text,
+    movie_genre text,
+    ticket_price decimal,
+    tickets_sold int,
+    title_year int,
+    total_sales decimal,
+    venue_code int,
+    PRIMARY KEY ((event_code, event_type))
+) WITH caching={'keys':'ALL', 'rows_per_partition':'NONE'}
+ AND compaction={'class':'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy', 'max_threshold':'32', 'min_threshold':'4'}
+ AND compression={'chunk_length_in_kb':'64', 'class':'org.apache.cassandra.io.compress.LZ4Compressor'}
+ AND dclocal_read_repair_chance=0.1
+ AND speculative_retry='99PERCENTILE';
+
+
+
+
+// Create materialized views for tenant movie, conference and music_festival
+
+CREATE MATERIALIZED VIEW movie
+AS SELECT event_code, event_type, venue_code, actor_1_name, actor_2_name, actor_3_name, director_name, duration, event_end_time, event_start_time, event_startingdate, event_title, location_venue, movie_genre, ticket_price, tickets_sold, title_year, total_sales
+FROM events
+WHERE event_code IS NOT NULL AND venue_code IS NOT NULL AND event_type IS NOT NULL
+PRIMARY KEY (event_code, event_type, venue_code);
+
+
+CREATE MATERIALIZED VIEW conference
+AS SELECT event_code, venue_code, event_type, email, event_end_time, event_enddate, event_organisors, event_start_time, event_startingdate, event_title, facebook_page, location_venue
+FROM events
+WHERE event_code IS NOT NULL AND venue_code IS NOT NULL AND event_type IS NOT NULL
+PRIMARY KEY (event_code, venue_code, event_type);
+
+
+CREATE MATERIALIZED VIEW music_festival
+AS SELECT event_code, event_type, event_title, email, event_end_time, event_enddate, event_organisors, event_start_time, event_startingdate, facebook_page, location_venue, ticket_price, tickets_sold, venue_code
+FROM events
+WHERE event_code IS NOT NULL AND event_type IS NOT NULL AND event_title IS NOT NULL
+PRIMARY KEY (event_code, event_type, event_title);
+
+
+
+// Insert/Copy the data in table events as given in Data.xlsx file
+
+
+// View the data for the materialized views movie, conference and music_festival
+
+========================================================= QUERIES ============================================================
+
+
+// Perform the given queries in CQL editor
+
+1)  select * from movie
+    where event_type='Movie'
+    allow filtering;
+    # returns all the data whose event type is Movie
+ 
+2)  select * from conference
+    where event_type='Conference'
+    allow filtering;
+    # returns all the data whose event type is Conference
+
+3)  select * from music_festival
+    where event_type='Music'
+    allow filtering;
+    # returns all the data whose event type is Music
+
+4)  select event_type, event_title
+    from movie
+    where event_code=101
+    # returns the type and title of event scheduled for the event code '101'
+ 
+
+ 
+
